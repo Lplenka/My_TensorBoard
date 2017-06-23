@@ -75,7 +75,7 @@ def mnist_model(learning_rate, use_two_fc, use_two_conv, hparam):
     conv1 = conv_layer(x_image, 1, 64, "conv")
     conv_out = tf.nn.max_pool(conv1, ksize=[1, 2, 2, 1], strides=[1, 2, 2, 1], padding="SAME")
 
-  flattened = tf.reshape(conv_out, [-1, 7 * 7 * 64])
+  flattened = tf.reshape(conv_out, [-1, 7 * 7 * 64]) #reshaped for fully connected layer
 
 
   if use_two_fc:
@@ -90,19 +90,19 @@ def mnist_model(learning_rate, use_two_fc, use_two_conv, hparam):
     embedding_size = 7*7*64
     logits = fc_layer(flattened, 7*7*64, 10, "fc")
 
-  with tf.name_scope("xent"):
+  with tf.name_scope("xent"): #softmax_function takes logits as input
     xent = tf.reduce_mean(
         tf.nn.softmax_cross_entropy_with_logits(
             logits=logits, labels=y), name="xent")
-    tf.summary.scalar("xent", xent)
+    tf.summary.scalar("xent", xent) #for cross entrophy graph
 
   with tf.name_scope("train"):
     train_step = tf.train.AdamOptimizer(learning_rate).minimize(xent)
 
   with tf.name_scope("accuracy"):
-    correct_prediction = tf.equal(tf.argmax(logits, 1), tf.argmax(y, 1))
+    correct_prediction = tf.equal(tf.argmax(logits, 1), tf.argmax(y, 1)) #logits and train labels comparision
     accuracy = tf.reduce_mean(tf.cast(correct_prediction, tf.float32))
-    tf.summary.scalar("accuracy", accuracy)
+    tf.summary.scalar("accuracy", accuracy) #for accuracy graph
 
   summ = tf.summary.merge_all()
 
