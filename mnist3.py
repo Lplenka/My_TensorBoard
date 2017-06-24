@@ -186,8 +186,10 @@ sess.run(init)
 
 # Merge all the summaries and write them out to
 merged = tf.summary.merge_all()
-writer = tf.summary.FileWriter("/tmp/mnist_conv/1")
-writer.add_graph(sess.graph)
+train_writer = tf.summary.FileWriter('/tmp/mnist_conv/2/train', sess.graph)
+test_writer = tf.summary.FileWriter('/tmp/mnist_conv/2/test')
+# writer = tf.summary.FileWriter("/tmp/mnist_conv/1")
+# writer.add_graph(sess.graph)
 
 # You can call this function in a loop to train the model, 100 images at a time
 def training_step(i, update_test_data, update_train_data):
@@ -199,6 +201,7 @@ def training_step(i, update_test_data, update_train_data):
     max_learning_rate = 0.02
     min_learning_rate = 0.0001
     decay_speed = 1600
+
     with tf.name_scope('learning_rate'):
         learning_rate = min_learning_rate + (max_learning_rate - min_learning_rate) * math.exp(-i/decay_speed)
     tf.summary.scalar('learning_rate', learning_rate)
@@ -206,7 +209,7 @@ def training_step(i, update_test_data, update_train_data):
     # compute training values for visualisation
     if update_train_data:
         summary, a, c, im, ca, da = sess.run([merged, accuracy, cross_entropy, I, conv_activations, dense_activations], {X: batch_X, Y_: batch_Y, tst: False, pkeep: 1.0, pkeep_conv: 1.0})
-        writer.add_summary(summary, i)
+        train_writer.add_summary(summary, i)
         print(str(i) + ": accuracy:" + str(a) + " loss: " + str(c) + " (lr:" + str(learning_rate) + ")")
         datavis.append_training_curves_data(i, a, c)
         datavis.update_image1(im)
@@ -215,7 +218,7 @@ def training_step(i, update_test_data, update_train_data):
     # compute test values for visualisation
     if update_test_data:
         summary, a, c, im = sess.run([merged, accuracy, cross_entropy, It], {X: mnist.test.images, Y_: mnist.test.labels, tst: True, pkeep: 1.0, pkeep_conv: 1.0})
-        writer.add_summary(summary, i)
+        test_writer.add_summary(summary, i)
         print(str(i) + ": ********* epoch " + str(i*100//mnist.train.images.shape[0]+1) + " ********* test accuracy:" + str(a) + " test loss: " + str(c))
         datavis.append_test_curves_data(i, a, c)
         datavis.update_image2(im)
@@ -223,11 +226,13 @@ def training_step(i, update_test_data, update_train_data):
     # the backpropagation training step
     summary, _ = sess.run([merged, train_step], {X: batch_X, Y_: batch_Y, lr: learning_rate, tst: False, pkeep: 0.75, pkeep_conv: 1.0})
     sess.run(update_ema, {X: batch_X, Y_: batch_Y, tst: False, iter: i, pkeep: 1.0, pkeep_conv: 1.0})
-    writer.add_summary(summary, i)
+    train_writer.add_summary(summary, i)
 
 
 for i in range(501):
     training_step(i, i % 100 == 0, i % 20 == 0)
+train_writer.close()
+test_writer.close()
 # datavis.animate(training_step, 1001, train_data_update_freq=20, test_data_update_freq=100, save_movie=True)
 
 # to save the animation as a movie, add save_movie=True as an argument to datavis.animate
